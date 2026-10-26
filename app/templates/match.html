@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ group.name }} · {{ when }}</title>
+  <meta property="og:title" content="{{ group.name }} · {{ when }}">
+  <meta property="og:description" content="{{ lineup.confirmed|length }}/{{ match.max_players }} confirmados">
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="group">{{ group.name }}</p>
+      <h1>{{ when }}</h1>
+      {% if match.location %}<p class="where">{{ match.location }}</p>{% endif %}
+      {% if match.status == "cancelled" %}
+        <p class="badge cancelled">Jogo cancelado</p>
+      {% elif match.status == "closed" %}
+        <p class="badge closed">Lista fechada</p>
+      {% endif %}
+    </header>
+
+    {% if teams %}
+    <section>
+      <h2>Times</h2>
+      <div class="teams">
+        {% for team in teams %}
+        <div class="team">
+          <h3>Time {{ loop.index }}</h3>
+          <ol>
+            {% for player in team %}
+            <li>{{ player.name }}{% if player.is_goalkeeper %} <span class="tag">gol</span>{% endif %}</li>
+            {% endfor %}
+          </ol>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <section>
+      <h2>Confirmados <span class="count">{{ lineup.confirmed|length }}/{{ match.max_players }}</span></h2>
+      {% if lineup.confirmed %}
+      <ol>
+        {% for entry in lineup.confirmed %}
+        <li>{{ entry.attendance.user.name }}{% if not entry.is_monthly %} <span class="tag">avulso</span>{% endif %}</li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="empty">Ninguém confirmou ainda.</p>
+      {% endif %}
+    </section>
+
+    {% if lineup.waitlist %}
+    <section>
+      <h2>Lista de espera</h2>
+      <ol>
+        {% for entry in lineup.waitlist %}
+        <li>{{ entry.attendance.user.name }}</li>
+        {% endfor %}
+      </ol>
+    </section>
+    {% endif %}
+
+    <footer>
+      <button type="button" id="copy">Copiar lista pro WhatsApp</button>
+    </footer>
+  </main>
+
+  <script>
+    // monta o texto no formato que a galera já cola no grupo
+    const lines = [
+      "*{{ group.name }}* - {{ when }}",
+      {% for entry in lineup.confirmed %}"{{ loop.index }}. {{ entry.attendance.user.name }}",
+      {% endfor %}
+      {% if lineup.waitlist %}"", "Espera:",{% endif %}
+      {% for entry in lineup.waitlist %}"{{ loop.index }}. {{ entry.attendance.user.name }}",
+      {% endfor %}
+    ];
+    const button = document.getElementById("copy");
+    button.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      button.textContent = "Copiado!";
+      setTimeout(() => (button.textContent = "Copiar lista pro WhatsApp"), 2000);
+    });
+  </script>
+</body>
+</html>

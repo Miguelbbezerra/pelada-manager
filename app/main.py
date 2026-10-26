@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import auth, groups
+from app.api.routes import auth, groups, matches, public
 from app.core.config import get_settings
 from app.errors import register_error_handlers
 
@@ -28,7 +28,7 @@ def create_app() -> FastAPI:
             allow_headers=["Authorization", "Content-Type"],
         )
     register_error_handlers(app)
-    for router in (auth.router, groups.router):
+    for router in (auth.router, groups.router, matches.router, public.router):
         app.include_router(router)
     app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
     return app
