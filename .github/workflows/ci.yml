@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_USER: pelada
+          POSTGRES_PASSWORD: pelada
+          POSTGRES_DB: pelada_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U pelada"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Tipos
+        run: uv run mypy
+      - name: Testes
+        run: uv run pytest --cov --cov-report=term-missing
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Valida o compose
+        run: docker compose config --quiet
+      - name: Build da imagem
+        run: docker build -t pelada-manager .
+      - name: Sobe a stack e testa o healthcheck
+        run: |
+          docker compose -f compose.yaml up -d --wait
+          curl --fail --silent http://localhost:8010/health
+      - name: Logs se falhar
+        if: failure()
+        run: docker compose -f compose.yaml logs
