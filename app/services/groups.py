@@ -83,9 +83,12 @@ class GroupService:
         self.session.commit()
         return membership
 
-    def remove_member(self, membership: Membership) -> None:
+    def check_can_remove(self, membership: Membership) -> None:
         if membership.role is Role.ADMIN:
             self._ensure_other_admin(membership.group_id, membership.user_id)
+
+    def remove_member(self, membership: Membership) -> None:
+        self.check_can_remove(membership)
         self.session.delete(membership)
         self.session.commit()
 

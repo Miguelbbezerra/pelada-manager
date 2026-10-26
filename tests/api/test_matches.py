@@ -384,3 +384,19 @@ def test_pagina_publica_de_jogo_inexistente(client: TestClient) -> None:
 
 def test_healthcheck(client: TestClient) -> None:
     assert client.get("/health").json() == {"status": "ok"}
+
+
+def test_quem_sai_do_grupo_libera_a_vaga_nos_proximos_jogos(
+    client: TestClient,
+    admin: Person,
+    group: dict[str, Any],
+    match: dict[str, Any],
+    add_member: Callable[..., Person],
+) -> None:
+    leaving = add_member("Vai Sair")
+    for p in [leaving, admin, add_member("J2"), add_member("J3"), add_member("Esperando")]:
+        confirm(client, match, p)
+
+    client.delete(f"/groups/{group['id']}/members/{leaving.id}", headers=leaving.headers)
+
+    assert lineup(client, match, admin) == (["Carlão", "J2", "J3", "Esperando"], [])

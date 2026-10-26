@@ -134,6 +134,28 @@ class MatchService:
             self._fill_open_spots(match)
         self.session.commit()
 
+    def release_member(self, group_id: int, user_id: int) -> None:
+        """Tira a pessoa dos próximos jogos do grupo (quando ela sai ou é removida).
+
+        Não faz commit: quem chama decide, junto com a remoção do membro.
+        """
+        stmt = (
+            select(Attendance)
+            .join(Match)
+            .where(
+                Match.group_id == group_id,
+                Match.starts_at > _now(),
+                Match.status != MatchStatus.CANCELLED,
+                Attendance.user_id == user_id,
+                Attendance.status != AttendanceStatus.DECLINED,
+            )
+        )
+        for attendance in self.session.scalars(stmt):
+            match = self._lock(attendance.match_id)
+            attendance.status = AttendanceStatus.DECLINED
+            self.session.flush()
+            self._fill_open_spots(match)
+
     def lineup(self, match: Match) -> Lineup:
         return Lineup(
             confirmed=self._entries(match, AttendanceStatus.CONFIRMED),

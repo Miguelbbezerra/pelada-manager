@@ -198,3 +198,30 @@ def test_ranking_conta_so_jogos_que_ja_aconteceram(
     ranking = client.get(f"/groups/{group['id']}/ranking", headers=admin.headers).json()
 
     assert [(r["name"], r["games"]) for r in ranking] == [("Carlão", 2), ("Zeca", 1)]
+
+
+def test_mes_padrao_e_o_mes_atual_no_horario_de_brasilia(
+    client: TestClient, admin: Person, group: dict[str, Any]
+) -> None:
+    from zoneinfo import ZoneInfo
+
+    month = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m")
+    pay(client, admin, group, admin, month)
+
+    dues = client.get(f"/groups/{group['id']}/dues", headers=admin.headers).json()
+
+    assert dues[0]["paid"] is True
+
+
+def test_ultimo_admin_nao_sai_e_nao_perde_a_vaga(
+    client: TestClient, admin: Person, group: dict[str, Any]
+) -> None:
+    match = client.post(
+        f"/groups/{group['id']}/matches", json={"starts_at": in_days(1)}, headers=admin.headers
+    ).json()
+    client.put(f"/matches/{match['id']}/attendance", headers=admin.headers)
+
+    client.delete(f"/groups/{group['id']}/members/{admin.id}", headers=admin.headers)
+
+    confirmed = client.get(f"/matches/{match['id']}", headers=admin.headers).json()["confirmed"]
+    assert [p["name"] for p in confirmed] == ["Carlão"]

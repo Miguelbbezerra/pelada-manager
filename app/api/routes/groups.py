@@ -5,6 +5,7 @@ from app.errors import PermissionDeniedError
 from app.models import Group, Membership, Role
 from app.schemas.groups import GroupIn, GroupOut, GroupUpdate, JoinIn, MemberOut, MemberUpdate
 from app.services.groups import GroupService
+from app.services.matches import MatchService
 
 router = APIRouter(prefix="/groups", tags=["grupos"])
 
@@ -91,5 +92,9 @@ def remove_member(group_id: int, user_id: int, user: CurrentUser, db: DbSession)
     me = service.require_member(group_id, user)
     if user_id != user.id and me.role is not Role.ADMIN:
         raise PermissionDeniedError("Só o admin do grupo pode remover outros membros")
-    service.remove_member(service.get_member(group_id, user_id))
+    target = service.get_member(group_id, user_id)
+    service.check_can_remove(target)  # valida antes de mexer nas presenças
+    # libera as vagas nos próximos jogos; o commit acontece junto com a remoção
+    MatchService(db).release_member(group_id, user_id)
+    service.remove_member(target)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
