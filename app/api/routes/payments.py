@@ -1,9 +1,10 @@
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Query, Response, status
 
-from app.api.deps import CurrentUser, DbSession
+from app.api.deps import AppSettings, CurrentUser, DbSession
 from app.models import Payment
 from app.schemas.payments import (
     AttendanceRank,
@@ -21,9 +22,14 @@ router = APIRouter(prefix="/groups/{group_id}", tags=["financeiro"])
 MonthQuery = Annotated[str | None, Query(pattern=r"^\d{4}-(0[1-9]|1[0-2])$", examples=["2026-10"])]
 
 
-def _month(value: str | None) -> date:
+def _today(settings: AppSettings) -> date:
+    # 23h do dia 31 em Brasília já é dia 1º em UTC
+    return datetime.now(ZoneInfo(settings.timezone)).date()
+
+
+def _month(value: str | None, settings: AppSettings) -> date:
     if value is None:
-        return datetime.now(UTC).date().replace(day=1)
+        return _today(settings).replace(day=1)
     year, month = value.split("-")
     return date(int(year), int(month), 1)
 
@@ -47,10 +53,15 @@ def record_payment(group_id: int, data: PaymentIn, user: CurrentUser, db: DbSess
 
 @router.get("/payments")
 def list_payments(
-    group_id: int, user: CurrentUser, db: DbSession, month: MonthQuery = None
+    group_id: int,
+    user: CurrentUser,
+    db: DbSession,
+    settings: AppSettings,
+    month: MonthQuery = None,
 ) -> list[PaymentOut]:
     GroupService(db).require_member(group_id, user)
-    return [_payment_out(p) for p in PaymentService(db).list_for_month(group_id, _month(month))]
+    payments = PaymentService(db).list_for_month(group_id, _month(month, settings))
+    return [_payment_out(p) for p in payments]
 
 
 @router.delete("/payments/{payment_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -65,7 +76,13 @@ def delete_payment(group_id: int, payment_id: int, user: CurrentUser, db: DbSess
 
 
 @router.get("/dues")
-def dues(group_id: int, user: CurrentUser, db: DbSession, month: MonthQuery = None) -> list[DueOut]:
+def dues(
+    group_id: int,
+    user: CurrentUser,
+    db: DbSession,
+    settings: AppSettings,
+    month: MonthQuery = None,
+) -> list[DueOut]:
     """Mensalistas e se já pagaram o mês (devedores primeiro)."""
     GroupService(db).require_member(group_id, user)
     return [
@@ -76,7 +93,7 @@ def dues(group_id: int, user: CurrentUser, db: DbSession, month: MonthQuery = No
             amount_cents=d.amount_cents,
             paid_at=d.paid_at,
         )
-        for d in ReportService(db).dues(group_id, _month(month))
+        for d in ReportService(db).dues(group_id, _month(month, settings))
     ]
 
 
@@ -85,10 +102,11 @@ def cashflow(
     group_id: int,
     user: CurrentUser,
     db: DbSession,
+    settings: AppSettings,
     year: Annotated[int | None, Query(ge=2000, le=2100)] = None,
 ) -> list[CashflowMonth]:
     GroupService(db).require_member(group_id, user)
-    rows = ReportService(db).cashflow(group_id, year or datetime.now(UTC).year)
+    rows = ReportService(db).cashflow(group_id, year or _today(settings).year)
     return [
         CashflowMonth(month=r.month, payments=r.payments, total_cents=r.total_cents) for r in rows
     ]
