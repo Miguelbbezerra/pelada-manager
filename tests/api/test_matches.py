@@ -364,6 +364,20 @@ def test_pagina_publica_mostra_os_times(
     assert ">gol<" in html
 
 
+def test_pagina_publica_escapa_nomes(
+    client: TestClient, admin: Person, match: dict[str, Any], add_member: Callable[..., Person]
+) -> None:
+    evil = add_member('</script><script>alert("oi")</script>')
+    confirm(client, match, evil)
+    code = match["share_url"].rsplit("/", 1)[-1]
+
+    html = client.get(f"/p/{code}").text
+
+    assert "<script>alert" not in html
+    assert "&lt;/script&gt;" in html  # na lista (HTML)
+    assert "\\u003c/script\\u003e" in html  # dentro do <script> (JSON)
+
+
 def test_pagina_publica_de_jogo_inexistente(client: TestClient) -> None:
     assert client.get("/p/nao-existe").status_code == 404
 

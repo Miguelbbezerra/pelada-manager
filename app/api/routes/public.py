@@ -7,7 +7,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 
 from app.api.deps import AppSettings, DbSession
-from app.services.matches import MatchService
+from app.services.matches import Lineup, MatchService
 
 router = APIRouter(include_in_schema=False)
 templates = Jinja2Templates(directory=Path(__file__).resolve().parents[2] / "templates")
@@ -23,17 +23,29 @@ def match_page(
     service = MatchService(db)
     match = service.get_by_share_code(share_code)
     local = match.starts_at.astimezone(ZoneInfo(settings.timezone))
+    when = f"{WEEKDAYS[local.weekday()]}, {local:%d/%m às %H:%M}"
+    lineup = service.lineup(match)
     return templates.TemplateResponse(
         request,
         "match.html",
         {
             "match": match,
             "group": match.group,
-            "when": f"{WEEKDAYS[local.weekday()]}, {local:%d/%m às %H:%M}",
-            "lineup": service.lineup(match),
+            "when": when,
+            "lineup": lineup,
             "teams": service.teams(match),
+            "whatsapp_lines": _whatsapp_lines(match.group.name, when, lineup),
         },
     )
+
+
+def _whatsapp_lines(group_name: str, when: str, lineup: Lineup) -> list[str]:
+    lines = [f"*{group_name}* - {when}"]
+    lines += [f"{i}. {e.attendance.user.name}" for i, e in enumerate(lineup.confirmed, 1)]
+    if lineup.waitlist:
+        lines += ["", "Espera:"]
+        lines += [f"{i}. {e.attendance.user.name}" for i, e in enumerate(lineup.waitlist, 1)]
+    return lines
 
 
 @router.get("/health")

@@ -69,15 +69,8 @@
   </main>
 
   <script>
-    // monta o texto no formato que a galera já cola no grupo
-    const lines = [
-      "*{{ group.name }}* - {{ when }}",
-      {% for entry in lineup.confirmed %}"{{ loop.index }}. {{ entry.attendance.user.name }}",
-      {% endfor %}
-      {% if lineup.waitlist %}"", "Espera:",{% endif %}
-      {% for entry in lineup.waitlist %}"{{ loop.index }}. {{ entry.attendance.user.name }}",
-      {% endfor %}
-    ];
+    // texto no formato que a galera já cola no grupo
+    const lines = {{ whatsapp_lines|tojson }};
     const button = document.getElementById("copy");
     button.addEventListener("click", async () => {
       await navigator.clipboard.writeText(lines.join("\n"));
