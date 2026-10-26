@@ -1,0 +1,14 @@
+# Carregado automaticamente pelo `docker compose up` (desenvolvimento).
+# Para simular produção: docker compose -f compose.yaml up
+services:
+  api:
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    develop:
+      watch:
+        - action: sync
+          path: ./app
+          target: /app/app
+        - action: rebuild
+          path: uv.lock
+        - action: rebuild
+          path: alembic
