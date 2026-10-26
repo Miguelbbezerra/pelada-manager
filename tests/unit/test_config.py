@@ -10,6 +10,6 @@ def test_producao_recusa_o_segredo_padrao() -> None:
 
 
 def test_producao_aceita_segredo_forte() -> None:
-    settings = Settings(environment="prod", jwt_secret="x" * 40)  # type: ignore[arg-type]
+    settings = Settings(environment="prod", jwt_secret="x" * 40)
 
     assert settings.environment == "prod"

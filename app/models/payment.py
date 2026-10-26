@@ -23,8 +23,6 @@ class Payment(Base):
     reference_month: Mapped[date] = mapped_column(Date)
     amount_cents: Mapped[int]
     paid_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    recorded_by_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="SET NULL")
-    )
+    recorded_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
 
     user: Mapped[User] = relationship(foreign_keys=[user_id], lazy="joined")

@@ -51,9 +51,7 @@ class Membership(TimestampMixin, Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     group_id: Mapped[int] = mapped_column(ForeignKey("groups.id", ondelete="CASCADE"))
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    role: Mapped[Role] = mapped_column(
-        str_enum(Role, "membership_role"), default=Role.PLAYER
-    )
+    role: Mapped[Role] = mapped_column(str_enum(Role, "membership_role"), default=Role.PLAYER)
     position: Mapped[Position] = mapped_column(
         str_enum(Position, "membership_position"),
         default=Position.FIELD,

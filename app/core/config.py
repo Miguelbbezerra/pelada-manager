@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEV_SECRET = "dev-only-nao-use-em-producao-troque-isso"
+DEV_SECRET = "dev-only-nao-use-em-producao-troque-isso"  # noqa: S105 - recusado em prod
 
 
 class Settings(BaseSettings):

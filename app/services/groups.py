@@ -19,10 +19,7 @@ class GroupService:
 
     def list_for_user(self, user: User) -> list[Group]:
         stmt = (
-            select(Group)
-            .join(Membership)
-            .where(Membership.user_id == user.id)
-            .order_by(Group.name)
+            select(Group).join(Membership).where(Membership.user_id == user.id).order_by(Group.name)
         )
         return list(self.session.scalars(stmt))
 
@@ -107,7 +104,5 @@ class GroupService:
 
     def _membership(self, group_id: int, user_id: int) -> Membership | None:
         return self.session.scalar(
-            select(Membership).where(
-                Membership.group_id == group_id, Membership.user_id == user_id
-            )
+            select(Membership).where(Membership.group_id == group_id, Membership.user_id == user_id)
         )

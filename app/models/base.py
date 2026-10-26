@@ -1,5 +1,4 @@
 from datetime import datetime
-
 from enum import StrEnum
 
 from sqlalchemy import DateTime, Enum, MetaData, func
@@ -20,9 +19,7 @@ class Base(DeclarativeBase):
 
 
 class TimestampMixin:
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 def str_enum(enum_cls: type[StrEnum], name: str) -> Enum:

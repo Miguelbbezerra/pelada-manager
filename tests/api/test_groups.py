@@ -49,7 +49,9 @@ def test_jogador_nao_ve_o_codigo_de_convite(
 def test_codigo_invalido_da_404(client: TestClient, make_user: Callable[..., Person]) -> None:
     person = make_user()
 
-    response = client.post("/groups/join", json={"invite_code": "naoexiste"}, headers=person.headers)
+    response = client.post(
+        "/groups/join", json={"invite_code": "naoexiste"}, headers=person.headers
+    )
 
     assert response.status_code == 404
 
@@ -74,7 +76,9 @@ def test_novo_codigo_invalida_o_antigo(
     ]
     person = make_user()
 
-    old = client.post("/groups/join", json={"invite_code": group["invite_code"]}, headers=person.headers)
+    old = client.post(
+        "/groups/join", json={"invite_code": group["invite_code"]}, headers=person.headers
+    )
     new = client.post("/groups/join", json={"invite_code": new_code}, headers=person.headers)
 
     assert (old.status_code, new.status_code) == (404, 201)
@@ -104,7 +108,9 @@ def test_jogador_nao_edita_o_grupo(
 ) -> None:
     player = add_member()
 
-    response = client.patch(f"/groups/{group['id']}", json={"name": "Hackeado"}, headers=player.headers)
+    response = client.patch(
+        f"/groups/{group['id']}", json={"name": "Hackeado"}, headers=player.headers
+    )
 
     assert response.status_code == 403
 
@@ -161,7 +167,9 @@ def test_ultimo_admin_nao_pode_deixar_de_ser_admin(
     assert response.status_code == 409
 
 
-def test_ultimo_admin_nao_pode_sair(client: TestClient, admin: Person, group: dict[str, Any]) -> None:
+def test_ultimo_admin_nao_pode_sair(
+    client: TestClient, admin: Person, group: dict[str, Any]
+) -> None:
     response = client.delete(f"/groups/{group['id']}/members/{admin.id}", headers=admin.headers)
 
     assert response.status_code == 409

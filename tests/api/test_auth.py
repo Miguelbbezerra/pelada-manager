@@ -16,7 +16,11 @@ def test_cadastro_devolve_o_usuario_sem_a_senha(client: TestClient) -> None:
     )
 
     assert response.status_code == 201
-    assert response.json() == {"id": response.json()["id"], "name": "Fulano", "email": "fulano@example.com"}
+    assert response.json() == {
+        "id": response.json()["id"],
+        "name": "Fulano",
+        "email": "fulano@example.com",
+    }
 
 
 def test_email_repetido_da_409(client: TestClient, make_user: Callable[..., Person]) -> None:
@@ -38,7 +42,9 @@ def test_senha_curta_da_422(client: TestClient) -> None:
     assert response.status_code == 422
 
 
-def test_login_ignora_maiusculas_no_email(client: TestClient, make_user: Callable[..., Person]) -> None:
+def test_login_ignora_maiusculas_no_email(
+    client: TestClient, make_user: Callable[..., Person]
+) -> None:
     user = make_user()
 
     assert login(client, user.email.upper()) == 200

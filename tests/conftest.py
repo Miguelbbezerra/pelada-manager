@@ -9,6 +9,8 @@ import fakeredis
 import pytest
 from alembic.config import Config
 from fastapi.testclient import TestClient
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session
 
@@ -22,11 +24,19 @@ os.environ["DATABASE_URL"] = TEST_DATABASE_URL
 os.environ["ENVIRONMENT"] = "test"
 os.environ["PUBLIC_BASE_URL"] = "http://pelada.test"
 
+from app.core import security  # noqa: E402
 from app.core.database import get_db  # noqa: E402
 from app.core.redis import get_redis  # noqa: E402
 from app.main import app  # noqa: E402
 
 PASSWORD = "senha-forte-123"
+
+
+@pytest.fixture(autouse=True)
+def fast_password_hash(monkeypatch: pytest.MonkeyPatch) -> None:
+    # argon2 é lento de propósito; nos testes isso só deixa a suíte lenta
+    cheap = PasswordHash((Argon2Hasher(time_cost=1, memory_cost=1024, parallelism=1),))
+    monkeypatch.setattr(security, "_hasher", cheap)
 
 
 @pytest.fixture(scope="session")
@@ -91,9 +101,9 @@ def make_user(client: TestClient) -> Callable[..., Person]:
             "/auth/register", json={"name": name, "email": email, "password": PASSWORD}
         )
         assert response.status_code == 201, response.text
-        token = client.post(
-            "/auth/token", data={"username": email, "password": PASSWORD}
-        ).json()["access_token"]
+        token = client.post("/auth/token", data={"username": email, "password": PASSWORD}).json()[
+            "access_token"
+        ]
         return Person(response.json()["id"], name, email, {"Authorization": f"Bearer {token}"})
 
     return _make

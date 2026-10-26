@@ -44,5 +44,3 @@ def login(
 @router.get("/users/me")
 def me(user: CurrentUser) -> UserOut:
     return UserOut.model_validate(user)
-
-
